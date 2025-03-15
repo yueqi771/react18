@@ -73,7 +73,7 @@ initialUpdateQueue(fiber);
 
 let update1 = createUpdate() ;
 update1.payload = {name: "越祈"}
-enqueueUpdate(fiber,update1)
+enqueueUpdate(fiber, update1)
 
 
 let update2 = createUpdate() ;

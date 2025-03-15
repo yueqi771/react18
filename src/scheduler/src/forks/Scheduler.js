@@ -1,5 +1,6 @@
 import { IdlePriority, ImmediatePriority, LowPriority, NormalPriority, UserBlockingPriority } from "./SchedulerPriorities";
-import { push } from './SchedulerMinHeap'
+import { push, peek, pop } from './SchedulerMinHeap'
+
 const maxSinged31BitInt = 1073741823; // Time out immediately;
 const IMMEDIATE_PRIORITY_TIMEOUT = -1; // Eventually time out
 // yonghu 阻塞操作优先级250ms
@@ -89,11 +90,11 @@ export function scheduleCallback(priorityLevel, callback) {
   return newTask;
 }
 
-function requestHostCallback(flushWork) {
+function requestHostCallback(workLoop) {
   // 缓存回调函数
-  scheduleHostCallback = flushWork;
+  scheduleHostCallback = workLoop;
   // 执行工作知道截止时间
-  // schedulePerformWorkUntilDeadline()
+  schedulePerformWorkUntilDeadline()
 }
 
 function schedulePerformWorkUntilDeadline() {
@@ -119,7 +120,8 @@ function workLoop(startTime) {
 
     if(typeof callback === 'function') {
       currentTask.callback = null;
-      const continuationCallback = callback();
+      const didUserCallbackTimeout = currentTask.expirationTime <= currentTime;
+      const continuationCallback = callback(didUserCallbackTimeout);
 
       // 执行工作，如果返回心得函数，则表示当前的工作没有完成
       if(typeof continuationCallback === 'function') {
@@ -173,12 +175,12 @@ function performWorkUntilDeadline() {
       hasMoreWork = scheduleHostCallback(startTime);
 
     }catch(e) {
-
+      console.log(e)
     }finally {
       // 如果执行完为true的话， 说明还有更多工作要做
       if(hasMoreWork) {
         // 继续执行
-        // schedulePerformWorkUntilDeadline();
+        schedulePerformWorkUntilDeadline();
       }else {
         scheduleHostCallback = null;
       }
@@ -193,5 +195,9 @@ function getCurrentTime() {
 
 export {
   shouldYieldToHost as shouldYield,
-  IdlePriority, ImmediatePriority, LowPriority, NormalPriority, UserBlockingPriority
+  IdlePriority, 
+  ImmediatePriority, 
+  LowPriority, 
+  NormalPriority, 
+  UserBlockingPriority
 }

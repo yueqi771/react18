@@ -1,4 +1,5 @@
 import { NoFlags } from "./ReactFiberFlags";
+import { NoLanes } from "./ReactFiberLane";
 import { HostComponent, HostRoot, HostText, IndeterminateComponent } from "./ReactWorkTags";
 
 export function createHostRootFiber() {
@@ -48,7 +49,8 @@ export function FiberNode(tag, pendingProps, key) {
 
   this.index = 0
 
-  this.deletions = null
+  this.deletions = null;
+  this.lanes = NoLanes;
 }
 
 

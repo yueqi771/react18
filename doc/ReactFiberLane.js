@@ -1,67 +1,50 @@
-import assign from "shared/assign";
-import { enqueueConcurrentClassUpdate } from "./ReactFiberConcurrentUpdates";
-import { NoLanes, NoLane, mergeLanes, isSubsetOfLanes } from "./ReactFiberLane";
-// 更新状态
-export const UpdateState = 0;
+// 有两个赛道
+const NoLanes = 0b00;
+const NoLane = 0b00;
+const SyncLane = 0b01; // 1
+const InputContinuousHydrationLane = 0b10; // 2
 
-export function initialUpdateQueue(fiber) {
-  // pending其实是一个循环链表
+function isSubsetOfLanes(set, subset) {
+  // set 00110
+  // subset 00010
+  return (set & subset) === subset;
+}
+
+function mergeLanes(a, b) {
+  return a | b;
+}
+
+function initializeUpdateQueue(fiber) {
   const queue = {
     baseState: fiber.memoizedState, // 本次更新前当前fiber的状态， 更新会给予它进行计算状态
     firstBaseUpdate: null, // 本次更新前该fiber上保存的上次跳过的更新链表表头
     lastBaseUpdate: null, // 本次跟新前该fiber上保存的上次跳过的更新链表的尾部
     shared: {
-      pending: null
+      pending: null,
     }
   }
 
   fiber.updateQueue = queue;
 }
 
-export function createUpdate(lane) {
-  const update = { tag: UpdateState, lane, next: null };
-
-  return update;
-
-}
-
-export function enqueueUpdate(fiber, update, lane) {
-  // 获取更新队列
-  const updateQueue = fiber.updateQueue;
-  // 获取共享队列
+function enqueueUpdate(fiber, update) {
+  let updateQueue = fiber.updateQueue;
   const sharedQueue = updateQueue.shared;
-  
-  return enqueueConcurrentClassUpdate(fiber, sharedQueue, update, lane);
 
-
-  /**
-  const updateQueue = fiber.updateQueue;
-  const pending = updateQueue.shared.pending;
+  const pending = sharedQueue.pending;
 
   if(pending === null) {
-    update.next = update
+    update.next = update;
   }else {
-    update.next = pending.next
-    pending.next = update
+    update.next = pending.next;
+    pending.next = update;
   }
 
-  // pending指向最后一个更新，最有一个更新的next指向第一个更细。
-  // 单向循环链表
-  updateQueue.shared.pending = update
-
-   // 从当前fiber向上找到根fiber
-   return enqueueConcurrentClassUpdate(fiber) 
-    */
+  sharedQueue.pending = update;
 }
 
-
-/**
- * 根据老状态和更新队列中的更新计算最新的状态
- * @param {*} workInProgress 要计算的fiber
- */
-export function processUpdateQueue(workInProgress, nextProps, renderLanes) {
-  
-  const queue = workInProgress.updateQueue;
+function processUpdateQueue(fiber, renderLanes) {
+  const queue = fiber.updateQueue;
   let firstBaseUpdate = queue.firstBaseUpdate; // 老的链表头
   let lastBaseUpdate = queue.lastBaseUpdate;  // 老的链表尾
   const pendingQueue = queue.shared.pending; // 新的链表尾
@@ -132,8 +115,6 @@ export function processUpdateQueue(workInProgress, nextProps, renderLanes) {
           newLastBaseUpdate = newLastBaseUpdate.next = clone
 
         } 
-
-        console.log('update----', update, newState)
         newState = getStateFromUpdate(update, newState)
       }
 
@@ -147,49 +128,102 @@ export function processUpdateQueue(workInProgress, nextProps, renderLanes) {
     queue.baseState = newBaseState;
     queue.firstBaseUpdate = newFirstBaseUpdate;
     queue.lastBaseUpdate = newLastBaseUpdate;
-    workInProgress.lanes = newLanes;
-    debugger
-    workInProgress.memoizedState = newState;
+    fiber.lanes = newLanes;
+    fiber.memoizedState = newState;
 
   } 
 }
 
-/**
- * 根据老状态和更新计算新的状态
- * @param {*} update 更新的对象其实有很多类型
- * @param {*} prevState 老状态
- */
-function getStateFromUpdate(update, prevState, nextProps) {
-  switch(update.tag) {
-    case UpdateState: 
-      const { payload } = update;
-
-      let partialStatel
-
-      if(typeof payload === 'function') {
-        partialStatel = payload.call(null, prevState, nextProps)
-      }else {
-        partialStatel = payload
-      }
-
-      return assign({}, prevState, partialStatel)
-  }
+function getStateFromUpdate(update, prevState) {
+  return update.payload(prevState);
+  
 }
 
-export function cloneUpdateQueue(current, workInProgress) {
-  // 新的更新队列
-  const workInProgressQueue = workInProgress.updateQueue;
-  // 老的更新队列
-  const currentQueue = current.updateQueue;
+// 新建一个fiber
+// 演示如何给fiber添加不同优先级的更新
+// 在执行渲染的时候总是优先取最高优先级的更新， 跳过优先级低的更新
+let fiber = {
+  memoizedState: {
+    msg: 'hello',
+  },
+}
 
-  if(currentQueue === workInProgressQueue) {
-    const clone = {
-      baseState: currentQueue.baseState,
-      firstBaseUpdate: currentQueue.firstBaseUpdate,
-      lastBaseUpdate: currentQueue.lastBaseUpdate,
-      shared: currentQueue.shared,
-    }
+initializeUpdateQueue(fiber)
 
-    workInProgressQueue.updateQueue = clone;
+let updateA = {
+  id: "A",
+  payload: (state) => ({msg: state.msg + 'A'}),
+  lane: SyncLane
+}
+
+enqueueUpdate(fiber, updateA)
+
+let updateB = {
+  id: "B",
+  payload: (state) => ({msg: state.msg + 'B'}),
+  lane: InputContinuousHydrationLane
+
+}
+
+enqueueUpdate(fiber, updateB)
+
+let updateC = {
+  id: "C",
+  payload: (state) => ({msg: state.msg + 'C'}),
+  lane: SyncLane
+
+}
+
+enqueueUpdate(fiber, updateC)
+
+let updateD = {
+  id: "D",
+  payload: (state) => ({msg: state.msg + 'D'}), 
+  lane: InputContinuousHydrationLane
+}
+
+enqueueUpdate(fiber, updateD)
+
+// 处理更新队列
+processUpdateQueue(fiber, SyncLane)
+
+console.log(fiber.memoizedState)
+console.log('updateQueue', printUpdateQueue(fiber.updateQueue))
+
+processUpdateQueue(fiber, InputContinuousHydrationLane)
+
+
+// let updateE = {
+//   id: "E",
+//   payload: (state) => ({msg: state.msg + 'E'}),
+//   lane: InputContinuousHydrationLane
+// }
+
+// enqueueUpdate(fiber, updateE)
+
+// let updateF = {
+//   id: "F",
+//   payload: (state) => ({msg: state.msg + 'F'}),
+//   lane: SyncLane
+// }
+
+// enqueueUpdate(fiber, updateF)
+
+// 处理的时候需要制定一个渲染优先级
+// processUpdateQueue(fiber, InputContinuousHydrationLane)
+
+console.log(fiber.memoizedState)
+
+function printUpdateQueue(updateQueue) {
+  const { baseState, firstBaseUpdate } = updateQueue;
+  let desc = baseState + '#';
+  let update = firstBaseUpdate;
+  
+  while(update) {
+    desc += update.id + '=>';
+    update = update.next;
   }
+
+  desc += 'null';
+  console.log(desc);
 }

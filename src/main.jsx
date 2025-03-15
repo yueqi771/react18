@@ -9,8 +9,6 @@ import * as React from './react'
     <h2>
       hello2 <span style={{ color: 'green' }}>world2</span>
     </h2> */}
-
-
 function reducer(state, action) {
   if(action.type === 'add') return state + 1;
 
@@ -174,7 +172,25 @@ function EffectComponent() {
   )
 }
 
-let element = <EffectComponent />
+// 更新优先级
+// function 
+
+// let element = <h1>这里是标题 </h1>
+
+function FunctionComponent1() {
+  console.log('FUnctionComponent')
+  const [number, setNumber] = React.useState(0);
+
+  React.useEffect(() => {
+    // setNumber(number => number + 1)
+  }, [])
+
+  return (
+    <button onClick={() => setNumber(number => number + 1)}>{number}</button>
+  )
+}
+
+let element = <FunctionComponent1 />
 
 // 创建一个根节点
 const root = createRoot(document.getElementById('root'))

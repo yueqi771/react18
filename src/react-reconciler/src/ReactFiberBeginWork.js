@@ -1,6 +1,6 @@
 import logger, { indent } from "shared/logger";
 import { FunctionComponent, HostComponent, HostRoot, HostText, IndeterminateComponent } from "./ReactWorkTags";
-import { processUpdateQueue } from './ReactFiberClassUpdateQueue'
+import { processUpdateQueue, cloneUpdateQueue } from './ReactFiberClassUpdateQueue'
 import { mountChildFibers, reconcileChildFibers } from './ReactChildFiber'
 import { shouldSetTextContent } from 'react-dom-bindings/src/client/ReactDOMHostConfig'
 import { renderWithHooks } from 'react-reconciler/src/ReactFiberHooks'
@@ -27,7 +27,7 @@ function reconcileChildren(current, workInProgress, nextChildren) {
  * @param {*} current 老fiber
  * @param {*} workInProgress 当前工作的fiber
  */
-export function beginWork(current, workInProgress) {
+export function beginWork(current, workInProgress, renderLanes) {
   indent.number += 2
 
   // logger(" ".repeat(indent.number) + 'beginWork', workInProgress)
@@ -35,21 +35,23 @@ export function beginWork(current, workInProgress) {
   switch(workInProgress.tag) {
     // 函数组件或者类组件，本质都是函数
     case IndeterminateComponent:  
-      return mounteIndeterminateComponent(current, workInProgress, workInProgress.type)
+      return mounteIndeterminateComponent(current, workInProgress, workInProgress.type, renderLanes)
     case HostRoot: 
-      return updateHostRoot(current, workInProgress)
+      console.log('parse HostRoot')
+      return updateHostRoot(current, workInProgress, renderLanes)
     // 函数组件
     case FunctionComponent: {
       const Component = workInProgress.type;
       const newProps = workInProgress.pendingProps;
+      console.log('parse FunctionComponent', Component, newProps)
 
-      return updateFunctionComponent(current, workInProgress, Component, newProps);
+      return updateFunctionComponent(current, workInProgress, Component, newProps, renderLanes);
     }
 
     
     // 原生组件
     case HostComponent:
-      return updateHostComponent(current, workInProgress);
+      return updateHostComponent(current, workInProgress, renderLanes);
     
 
     case HostText:
@@ -91,9 +93,13 @@ export function updateFunctionComponent(current, workInProgress, Component, next
   return workInProgress.child
 }
 
-function updateHostRoot(current, workInProgress) {
+function updateHostRoot(current, workInProgress, renderLanes) {
+  const nextProps = workInProgress.pendingProps;
+  debugger
+
+  cloneUpdateQueue(current, workInProgress)
   // 需要知道它的子虚拟DOM信息;
-  processUpdateQueue(workInProgress); // workInProgress.memoizedState = { element }
+  processUpdateQueue(workInProgress, nextProps, renderLanes); // workInProgress.memoizedState = { element }
   const nextState = workInProgress.memoizedState;
   // nextChildren就是新的子虚拟DOM
   const nextChildren = nextState.element;
