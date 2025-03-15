@@ -94,15 +94,22 @@ export function updateFunctionComponent(current, workInProgress, Component, next
 }
 
 function updateHostRoot(current, workInProgress, renderLanes) {
+
   const nextProps = workInProgress.pendingProps;
-  debugger
 
   cloneUpdateQueue(current, workInProgress)
+
+  console.log('updateHostRoot-----', workInProgress.updateQueue)
+  
   // 需要知道它的子虚拟DOM信息;
   processUpdateQueue(workInProgress, nextProps, renderLanes); // workInProgress.memoizedState = { element }
+
   const nextState = workInProgress.memoizedState;
   // nextChildren就是新的子虚拟DOM
-  const nextChildren = nextState.element;
+  const nextChildren = nextState?.element;
+
+  console.log('nextChildren-----', nextChildren)
+
   
   // 协调子节点 DOM DIFF -- 根据新的虚拟DOM生成Fiber链表
   reconcileChildren(current, workInProgress, nextChildren);

@@ -65,6 +65,8 @@ export function processUpdateQueue(workInProgress, nextProps, renderLanes) {
   let firstBaseUpdate = queue.firstBaseUpdate; // 老的链表头
   let lastBaseUpdate = queue.lastBaseUpdate;  // 老的链表尾
   const pendingQueue = queue.shared.pending; // 新的链表尾
+  console.log('pendingQueue-----',  queue, queue.shared, pendingQueue)
+
   // 合并新老两个链表
   if(pendingQueue !== null) {
     queue.shared.pending = null;
@@ -133,7 +135,6 @@ export function processUpdateQueue(workInProgress, nextProps, renderLanes) {
 
         } 
 
-        console.log('update----', update, newState)
         newState = getStateFromUpdate(update, newState)
       }
 

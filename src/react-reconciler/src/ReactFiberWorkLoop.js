@@ -169,7 +169,7 @@ function renderRootConcurrent(root, lanes) {
   }
 
   // 会在当前分配的时间片（5ms）内执行fiber树的构建或者说渲染
-  workLoopCocurrent();
+  workLoopConcurrent();
 
   // 如果不为null，说明fiber树的构建还没完成
   if(workInProgress !== null) {
@@ -267,12 +267,12 @@ function prepareFreshStack(root, renderLanes) {
   finishQueueingConcurrentUpdates()
 }
 
-function workLoopCocurrent() {
+function workLoopConcurrent() {
   // 如果有下一个要构建的fiber并且时间片没有过期
   while(workInProgress !== null && !shouldYield()) {
-    sleep(60);
+    // sleep(1200);
+
     performUnitOfWork(workInProgress)
-    console.log('shouldYield----', shouldYield(), workInProgress)
   }
 }
 
@@ -292,7 +292,6 @@ function performUnitOfWork(unitOfWork) {
   // 完成当前fiber的子fiber链表构建够
   const next = beginWork(current, unitOfWork, workInProgressRootRenderLanes);
 
-  console.log('performUnitOfWork next----', next)
 
   // 等待生效的变成已经生效的
   unitOfWork.memoizedProps = unitOfWork.pendingProps;
@@ -410,7 +409,6 @@ function sleep(duration) {
 
   while(true) {
     if(new Date().getTime() > endTime) {
-      console.log('sleep', endTime);
       return 
     }
   }

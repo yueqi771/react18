@@ -250,16 +250,16 @@ function dispatchSetState(fiber, queue, action) {
 
   const alternate = fiber.alternate;
   
-  if(fiber.lanes === NoLanes && (alternate === null || (alternate.lanes & lane) === NoLanes)) {
-    // 先获取队列上的老的状态和老的reducer
-    const { lastRenderedReducer, lastRendererdState } = queue
-    // 当触发动作后，我立刻用上一次的状态和上一次的reducer计算新的状态.
-    const eagerState = lastRenderedReducer(lastRendererdState, action)
-    update.hasEagerState = true;
-    update.eagerState = eagerState;
+  // if(fiber.lanes === NoLanes && (alternate === null || (alternate.lanes & lane) === NoLanes)) {
+  //   // 先获取队列上的老的状态和老的reducer
+  //   const { lastRenderedReducer, lastRendererdState } = queue
+  //   // 当触发动作后，我立刻用上一次的状态和上一次的reducer计算新的状态.
+  //   const eagerState = lastRenderedReducer(lastRendererdState, action)
+  //   update.hasEagerState = true;
+  //   update.eagerState = eagerState;
 
-    if(Object.is(eagerState, lastRendererdState)) {return}
-  }
+  //   if(Object.is(eagerState, lastRendererdState)) {return}
+  // }
 
   // 下面时真正的锐队更新，并调度更新逻辑
   const root = enqueueConcurrentHookUpdate(fiber, queue, update, lane);

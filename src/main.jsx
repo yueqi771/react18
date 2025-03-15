@@ -182,7 +182,7 @@ function FunctionComponent1() {
   const [number, setNumber] = React.useState(0);
 
   React.useEffect(() => {
-    // setNumber(number => number + 1)
+    setNumber(number => number + 1)
   }, [])
 
   return (
@@ -190,7 +190,31 @@ function FunctionComponent1() {
   )
 }
 
-let element = <FunctionComponent1 />
+/**
+ * 高优更新打断低优更新
+ */
+function FunctionComponent2() {
+  const [numbers, setNumbers] = React.useState(new Array(10).fill('A'));
+
+  React.useEffect(() => {
+    setTimeout(() => {
+
+    }, 10)
+
+    setNumbers(numbers => numbers.map(number => number + 'B'))
+  }, [])
+
+  return (
+    <button onClick={numbers => numbers.map(number => number + 'C')}>
+      {
+        numbers.map((number, index) => <span key={index}>{number}</span>)
+      }
+    </button>
+  )
+}
+
+
+let element = <FunctionComponent2 />
 
 // 创建一个根节点
 const root = createRoot(document.getElementById('root'))
